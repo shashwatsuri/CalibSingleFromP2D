@@ -7,6 +7,13 @@ import json
 from datetime import datetime
 import csv
 import matplotlib.image as mpimg
+import argparse
+
+# Create an ArgumentParser object
+parser = argparse.ArgumentParser(description='Description of your script.')
+parser.add_argument("--pose_model", type = str, help = "currently support coco_mmpose/easy_vitpose (default)")
+parser.add_argument("--results", type = str, help = "name of the results that need to be run, by default everything will be run")
+args = parser.parse_args()
 
 today = datetime.now()
 
@@ -14,9 +21,10 @@ today = datetime.now()
 
 
 #The name of is the current date
-name = str(today.strftime('%Y%m%d_%H%M%S')) + '_EPFL_campus4_res50'
+name = str(today.strftime('%Y%m%d_%H%M%S')) + '_data'
 
 #Gets the hyperparamter from hyperparameter.json
+print("Getting hyperparameters...")
 (threshold_euc, threshold_cos, angle_filter_video, 
  confidence, termination_cond, num_points, h, iter, focal_lr, point_lr) = util.hyperparameter(
      'CalibSingleFromP2D/hyperparameter.json')
@@ -44,6 +52,7 @@ hyperparam_dict = {"threshold_euc": threshold_euc, "threshold_cos": threshold_co
 
 # *************************************************************************************************************
 
+print("Creating files for plots...")
 if os.path.isdir('CalibSingleFromP2D/plots') == False:
     os.mkdir('CalibSingleFromP2D/plots')
 
@@ -87,7 +96,8 @@ with open('CalibSingleFromP2D/plots/time_' + name + '/result_bundle_no_sync.csv'
 
 # with open('CalibSingleFromP2D/camera-parameters.json', 'r') as f:
 #     h36m_json = json.load(f)
-
+if(args.results)
+with open('CalibSingleFromP2D/results/')
 campus_array_names = ['campus4-c0_avi', 'campus4-c1_avi', 'campus4-c2_avi']
 # cam_comb = util.random_combination(list(range(len(tsai_cal))), 2, np.inf)
 # print(cam_comb)
@@ -103,7 +113,10 @@ for vid in campus_array_names:
     with open('CalibSingleFromP2D/results/result_' + vid.split('_')[0] + '_.json', 'r') as f:
         points_2d = json.load(f)
     
-    datastore_cal = data.coco_mmpose_dataloader(points_2d, bound_lower = 100, bound = 2500)  
+    if(args.pose_model == "coco_mmpose"):
+        datastore_cal = data.coco_mmpose_dataloader(points_2d, bound_lower = 100, bound = 2500)  
+    else:
+        datastore_cal = data.vitpose_easy_dataloader(points_2d)
     frame_dir = 'CalibSingleFromP2D/Frames/' + vid + '/00000000.jpg'
     img = mpimg.imread(frame_dir)
     
@@ -113,7 +126,6 @@ for vid in campus_array_names:
          max_len = configuration['max_len'], min_size = configuration['min_size'])
     focal_array.append(cam_matrix[0][0])
     calib_array.append({'cam_matrix': cam_matrix, 'ground_normal': normal, 'ground_position': ankleWorld})
-    # print(ankles, cam_matrix, normal)
     print("vid:" +vid)
     print(cam_matrix,normal)
     num = num + 1
