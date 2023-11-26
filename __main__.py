@@ -8,14 +8,20 @@ from datetime import datetime
 import csv
 import matplotlib.image as mpimg
 import argparse
+import sys
 
 # Create an ArgumentParser object
 parser = argparse.ArgumentParser(description='Description of your script.')
 parser.add_argument("--pose_model", type = str, help = "currently support coco_mmpose/easy_vitpose (default)")
-parser.add_argument("--results", type = str, help = "name of the results that need to be run, by default everything will be run")
+parser.add_argument("--frames", type = str, help = "name of subfolder of frames in frames folder to run calibration on")
+parser.add_argument("--pose_results", type=str, help = "name of the json file that has the pose results in them")
 args = parser.parse_args()
 
 today = datetime.now()
+
+FRAME_DIR = "CalibSingleFromP2D/Frames/"
+PLOT_DIR = "CalibSingleFromP2D/plots/"
+RESULTS_DIR = "CalibSingleFromP2D/results/"
 
 # metrics = Metrics()
 
@@ -53,33 +59,33 @@ hyperparam_dict = {"threshold_euc": threshold_euc, "threshold_cos": threshold_co
 # *************************************************************************************************************
 
 print("Creating files for plots...")
-if os.path.isdir('CalibSingleFromP2D/plots') == False:
-    os.mkdir('CalibSingleFromP2D/plots')
+if os.path.isdir(PLOT_DIR) == False:
+    os.mkdir(PLOT_DIR)
 
-if os.path.isdir('CalibSingleFromP2D/plots/time_' + name) == False:
-    os.mkdir('CalibSingleFromP2D/plots/time_' + name)
+if os.path.isdir(PLOT_DIR+'time_' + name) == False:
+    os.mkdir(PLOT_DIR+'time_' + name)
 
-with open('CalibSingleFromP2D/plots/time_' + name +  '/result_sync.csv','a') as file:
+with open(PLOT_DIR+'time_' + name +  '/result_sync.csv','a') as file:
     writer1 = csv.writer(file)
     writer1.writerow(["shift gt", "shift", "subset", "camera1", "camera2"])
     file.close
 
-with open('CalibSingleFromP2D/plots/time_' + name + '/result_average_sync.csv','a') as file:
+with open(PLOT_DIR+'time_' + name + '/result_average_sync.csv','a') as file:
     writer1 = csv.writer(file)
     writer1.writerow(["shift gt", "cam1", "cam2", "shift avg", "shift std"])
     file.close
 
-with open('CalibSingleFromP2D/plots/time_' + name + '/result_average_all.csv','a') as file:
+with open(PLOT_DIR+'time_' + name + '/result_average_all.csv','a') as file:
     writer1 = csv.writer(file)
     writer1.writerow(["shift gt", "shift avg", "shift std", "diff avg", "diff std"])
     file.close
 
-with open('CalibSingleFromP2D/plots/time_' + name + '/result_bundle_sync.csv','a') as file:
+with open(PLOT_DIR+'time_' + name + '/result_bundle_sync.csv','a') as file:
     writer1 = csv.writer(file)
     writer1.writerow(["cam1", "cam2", "offset", "offset pred", "offset diff", "exp", "focal pre bundle", "focal_tsai", "angle_diff pre bundle", "error_npjpe pre bundle", "focal_error pre bundle", "results_position_diff pre bundle", "focal bundle", "focal_tsai", "angle_diff bundle", "error_npjpe bundle", "focal_error bundle", "results_position_diff bundle"])
     file.close
 
-with open('CalibSingleFromP2D/plots/time_' + name + '/result_bundle_no_sync.csv','a') as file:
+with open(PLOT_DIR+'time_' + name + '/result_bundle_no_sync.csv','a') as file:
     writer1 = csv.writer(file)
     writer1.writerow(["cam1", "cam2", "offset", "offset pred", "offset diff", "exp", "focal pre bundle", "focal_tsai", "angle_diff pre bundle", "error_npjpe pre bundle", "focal_error pre bundle", "results_position_diff pre bundle", "focal bundle", "focal_tsai", "angle_diff bundle", "error_npjpe bundle", "focal_error bundle", "results_position_diff bundle"])
     file.close
@@ -94,13 +100,11 @@ with open('CalibSingleFromP2D/plots/time_' + name + '/result_bundle_no_sync.csv'
 
 #############
 
-# with open('CalibSingleFromP2D/camera-parameters.json', 'r') as f:
-#     h36m_json = json.load(f)
-if(args.results)
-with open('CalibSingleFromP2D/results/')
-campus_array_names = ['campus4-c0_avi', 'campus4-c1_avi', 'campus4-c2_avi']
-# cam_comb = util.random_combination(list(range(len(tsai_cal))), 2, np.inf)
-# print(cam_comb)
+results  = os.path.join(RESULTS_DIR,args.pose_results)
+if(not os.path.exists(results + ".json")):
+    print("file " + results + ".json does not exist")
+    sys.exit()
+frames = os.path.join(FRAME_DIR,args.frames)
 
 with open('CalibSingleFromP2D/configuration.json', 'r') as f:
     configuration = json.load(f)
@@ -108,24 +112,24 @@ with open('CalibSingleFromP2D/configuration.json', 'r') as f:
 num = 0
 focal_array = []
 calib_array = []
-for vid in campus_array_names:
 
-    with open('CalibSingleFromP2D/results/result_' + vid.split('_')[0] + '_.json', 'r') as f:
-        points_2d = json.load(f)
-    
-    if(args.pose_model == "coco_mmpose"):
-        datastore_cal = data.coco_mmpose_dataloader(points_2d, bound_lower = 100, bound = 2500)  
-    else:
-        datastore_cal = data.vitpose_easy_dataloader(points_2d)
-    frame_dir = 'CalibSingleFromP2D/Frames/' + vid + '/00000000.jpg'
-    img = mpimg.imread(frame_dir)
-    
-    (ankles, cam_matrix, normal, ankleWorld, focal, focal_batch, ransac_focal, datastore_filtered) = run_calibration_ransac(
-         datastore_cal, 'CalibSingleFromP2D/hyperparameter.json', img, 
-         img.shape[1], img.shape[0], name, num, skip_frame = configuration['skip_frame'], 
-         max_len = configuration['max_len'], min_size = configuration['min_size'])
-    focal_array.append(cam_matrix[0][0])
-    calib_array.append({'cam_matrix': cam_matrix, 'ground_normal': normal, 'ground_position': ankleWorld})
-    print("vid:" +vid)
-    print(cam_matrix,normal)
-    num = num + 1
+with open(os.path.join(results + ".json"), 'r') as f:
+    points_2d = json.load(f)
+
+if(args.pose_model == "coco_mmpose"):
+    datastore_cal = data.coco_mmpose_dataloader(points_2d, bound_lower = 100, bound = 2500)  
+else:
+    datastore_cal = data.vitpose_easy_dataloader(points_2d)
+frame = [file for file in os.listdir(frames) if file.endswith('.jpg')][0]
+frame_path = os.path.join(frames,frame)
+print(frame_path)
+img = mpimg.imread(frame_path)
+
+(ankles, cam_matrix, normal, ankleWorld, focal, focal_batch, ransac_focal, datastore_filtered) = run_calibration_ransac(
+        datastore_cal, 'CalibSingleFromP2D/hyperparameter.json', img, 
+        img.shape[1], img.shape[0], name, num, skip_frame = configuration['skip_frame'], 
+        max_len = configuration['max_len'], min_size = configuration['min_size'])
+focal_array.append(cam_matrix[0][0])
+calib_array.append({'cam_matrix': cam_matrix, 'ground_normal': normal, 'ground_position': ankleWorld})
+print("vid:" +frames)
+print(cam_matrix,normal)
